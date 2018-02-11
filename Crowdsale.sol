@@ -1,6 +1,8 @@
 // Указываем версию для компилятора
 pragma solidity ^0.4.19;
 
+import './SafeMath.sol';
+
 // Объявляем интерфейс
 interface MyTokenICO {
     function transfer(address _receiver, uint256 _amount);
@@ -10,8 +12,9 @@ interface MyTokenICO {
 // Объявляем контракт
 contract Crowdsale {
 
-    // Объявляем переменную для стомости токена
+    using SafeMath for uint;
 
+    // Объявляем коэффициент стомости токена
     uint public rate;
 
     // Объявялем переменную для токена
@@ -87,7 +90,7 @@ contract Crowdsale {
             uint currentBalance = token.balanceOf(tokenHolders[i]);
 
             if (currentBalance > 0) {
-                uint dividends = currentBalance * sharesPercent / 100;
+                uint dividends = currentBalance.mul(sharesPercent).div(100);
                 token.transfer(tokenHolders[i], dividends);
             }
         }
