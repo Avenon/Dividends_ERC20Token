@@ -79,6 +79,7 @@ contract Crowdsale {
         return tokens;
     }
 
+
     // Записать балансы пользователей после ICO, для дивидендов
     function getTokenBalance() public returns (bool) {
         for(uint i = 0; i < tokenHolders.length; i++) {

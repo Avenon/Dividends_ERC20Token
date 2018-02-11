@@ -4,7 +4,8 @@ pragma solidity ^0.4.11;
 // Интерфейс токена
 interface MyTokenDividends {
     function getTokenBalance() returns (bool);
-    function transfer(address _receiver, uint256 _amount);
+    function payDividends() returns (bool);
+    //function transfer(address _receiver, uint256 _amount);
 }
 
 contract Dividends {
@@ -40,6 +41,9 @@ contract Dividends {
         return true;
     }
 
-
+    function pay() public periodDividendsIsOn returns (bool){
+        token.payDividends();
+        return true;
+    }
 
 }
