@@ -27,7 +27,13 @@ contract Crowdsale {
     address[] public tokenHolders;
 
     // После окончания ICO, в данный мэппинг запишем фактический баланс держателей
-    mapping (address => uint) public sharesBalance;
+    //mapping (address => uint) public sharesBalance;
+    struct Shareholders {
+        address account;
+        uint amount;
+    }
+
+    Shareholders[] public shareholders;
 
     uint public sharesPercent;
 
@@ -78,21 +84,10 @@ contract Crowdsale {
     }
 
     // Записать балансы пользователей после ICO, для дивидендов
-    //function getTokenBalance() public returns (bool) {
-    //    for(uint i = 0; i < tokenHolders.length; i++) {
-    //        sharesBalance[tokenHolders[i]] = token.balanceOf(tokenHolders[i]);
-    //    }
-    //    return true;
-    //}
-
-    function payDividends() public returns (bool) {
+    function getTokenBalance() public returns (bool) {
         for(uint i = 0; i < tokenHolders.length; i++) {
-            uint currentBalance = token.balanceOf(tokenHolders[i]);
-
-            if (currentBalance > 0) {
-                uint dividends = currentBalance.mul(sharesPercent).div(100);
-                token.transfer(tokenHolders[i], dividends);
-            }
+            uint tokenAmount = token.balanceOf(tokenHolders[i]);
+            shareholderpay.push(shareholders({account: tokenHolders[i], amount: tokenAmount}));
         }
         return true;
     }
