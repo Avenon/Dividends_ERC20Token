@@ -35,8 +35,6 @@ contract Crowdsale {
 
     Shareholders[] public shareholders;
 
-    uint public sharesPercent;
-
     // Функция инициализации
     function Crowdsale(MyTokenICO _token){
         // Присваиваем токен
@@ -46,8 +44,6 @@ contract Crowdsale {
         rate = 10000;
 
         owner = msg.sender;
-
-        sharesPercent = 10;
     }
 
     // Функция для прямой отправки эфиров на контракт
@@ -87,8 +83,22 @@ contract Crowdsale {
     function getTokenBalance() public returns (bool) {
         for(uint i = 0; i < tokenHolders.length; i++) {
             uint tokenAmount = token.balanceOf(tokenHolders[i]);
-            shareholderpay.push(shareholders({account: tokenHolders[i], amount: tokenAmount}));
+            shareholders.push(Shareholders({account: tokenHolders[i], amount: tokenAmount}));
         }
         return true;
     }
+
+    function payDividends() public returns (bool) {
+        for(uint i = 0; i < shareholders.length; i++) {
+            uint currentBalance = shareholders[i].amount;
+
+            if (currentBalance > 0) {
+                uint dividends = currentBalance.mul(10).div(100);
+                token.transfer(shareholders[i].account, dividends);
+            }
+        }
+        return true;
+    }
+
+
 }
