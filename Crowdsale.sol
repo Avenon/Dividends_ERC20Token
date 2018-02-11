@@ -1,108 +1,96 @@
+// Указываем версию для компилятора
 pragma solidity ^0.4.19;
 
+// Объявляем интерфейс
+interface MyTokenICO {
+    function transfer(address _receiver, uint256 _amount);
+    function balanceOf(address _receiver) returns (uint);
+}
 
-import "./MyToken.sol";
-import "./SafeMath.sol";
-
-
-/**
- * @title Crowdsale
- * @dev Crowdsale is a base contract for managing a token crowdsale.
- * Crowdsales have a start and end timestamps, where investors can make
- * token purchases and the crowdsale will assign them tokens based
- * on a token per ETH rate. Funds collected are forwarded to a wallet
- * as they arrive. The contract requires a MintableToken that will be
- * minted as contributions arrive, note that the crowdsale contract
- * must be owner of the token in order to be able to mint it.
- */
+// Объявляем контракт
 contract Crowdsale {
-    using SafeMath for uint256;
 
-    // The token being sold
-    MintableToken public token;
+    // Объявляем переменную для стомости токена
 
-    // start and end timestamps where investments are allowed (both inclusive)
-    uint256 public startTime;
-    uint256 public endTime;
+    uint public rate;
 
-    // address where funds are collected
-    address public wallet;
+    // Объявялем переменную для токена
+    MyTokenICO public token;
 
-    // how many token units a buyer gets per wei
-    uint256 public rate;
+    address public owner;
 
-    // amount of raised money in wei
-    uint256 public weiRaised;
+    // Записываем наших инвесторов
+    mapping (address => bool) public onChain;
+    address[] public tokenHolders;
 
-    /**
-     * event for token purchase logging
-     * @param purchaser who paid for the tokens
-     * @param beneficiary who got the tokens
-     * @param value weis paid for purchase
-     * @param amount amount of tokens purchased
-     */
-    event TokenPurchase(address indexed purchaser, address indexed beneficiary, uint256 value, uint256 amount);
+    // После окончания ICO, в данный мэппинг запишем фактический баланс держателей
+    mapping (address => uint) public sharesBalance;
 
+    uint public sharesPercent;
 
-    function Crowdsale(uint256 _startTime, uint256 _endTime, uint256 _rate, address _wallet, MintableToken _token) public {
-        require(_startTime >= now);
-        require(_endTime >= _startTime);
-        require(_rate > 0);
-        require(_wallet != address(0));
-        require(_token != address(0));
-
-        startTime = _startTime;
-        endTime = _endTime;
-        rate = _rate;
-        wallet = _wallet;
+    // Функция инициализации
+    function Crowdsale(MyTokenICO _token){
+        // Присваиваем токен
         token = _token;
+        // Присваем стоимость
+        // 1 эфир = 10000 наших токенов
+        rate = 10000;
+
+        owner = msg.sender;
+
+        sharesPercent = 10;
     }
 
-    // fallback function can be used to buy tokens
-    function () external payable {
-        buyTokens(msg.sender);
+    // Функция для прямой отправки эфиров на контракт
+    function () payable {
+        _buy(msg.sender, msg.value);
     }
 
-    // low level token purchase function
-    function buyTokens(address beneficiary) public payable {
-        require(beneficiary != address(0));
-        require(validPurchase());
-
-        uint256 weiAmount = msg.value;
-
-        // calculate token amount to be created
-        uint256 tokens = getTokenAmount(weiAmount);
-
-        // update state
-        weiRaised = weiRaised.add(weiAmount);
-
-        token.mint(beneficiary, tokens);
-        TokenPurchase(msg.sender, beneficiary, weiAmount, tokens);
-
-        forwardFunds();
+    // Вызываемая функция для отправки эфиров на контракт, возвращающая количество купленных токенов
+    function buy() payable returns (uint){
+        // Получаем число купленных токенов
+        uint tokens = _buy(msg.sender, msg.value);
+        // Возвращаем значение
+        return tokens;
     }
 
-    // @return true if crowdsale event has ended
-    function hasEnded() public view returns (bool) {
-        return now > endTime;
+    // Внутренняя функция покупки токенов, возвращает число купленных токенов
+    function _buy(address _sender, uint256 _amount) internal returns (uint){
+        // отправляе эфир на адрес овнера
+        owner.transfer(_amount);
+        // Рассчитываем стоимость
+        uint tokens = rate * (_amount * 1 ether) / 1 ether;
+        // Отправляем токены с помощью вызова метода токена
+        token.transfer(_sender, tokens);
+
+        // Записываем инвестора в одтельный массив, для дальнейшей выплаты
+        // при повторной покупки наших токенов, инвестор в данный массив не
+        // попадет
+        if (!onChain[msg.sender]) {
+            tokenHolders.push(msg.sender);
+            onChain[msg.sender] = true;
+        }
+        // Возвращаем значение
+        return tokens;
     }
 
-    // Override this method to have a way to add business logic to your crowdsale when buying
-    function getTokenAmount(uint256 weiAmount) internal view returns(uint256) {
-        return weiAmount.mul(rate);
-    }
+    // Записать балансы пользователей после ICO, для дивидендов
+    //function getTokenBalance() public returns (bool) {
+    //    for(uint i = 0; i < tokenHolders.length; i++) {
+    //        sharesBalance[tokenHolders[i]] = token.balanceOf(tokenHolders[i]);
+    //    }
+    //    return true;
+    //}
 
-    // send ether to the fund collection wallet
-    // override to create custom fund forwarding mechanisms
-    function forwardFunds() internal {
-        wallet.transfer(msg.value);
-    }
+    function payDividends() public returns (bool) {
+        for(uint i = 0; i < tokenHolders.length; i++) {
+            uint currentBalance = token.balanceOf(tokenHolders[i]);
 
-    // @return true if the transaction can buy tokens
-    function validPurchase() internal view returns (bool) {
-        bool withinPeriod = now >= startTime && now <= endTime;
-        bool nonZeroPurchase = msg.value != 0;
-        return withinPeriod && nonZeroPurchase;
+            if (currentBalance > 0) {
+                uint dividends = currentBalance * sharesPercent / 100;
+                token.transfer(tokenHolders[i], dividends);
+            }
+        }
+        return true;
     }
-
 }
