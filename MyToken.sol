@@ -16,12 +16,13 @@ contract MyToken is MintableToken {
 
     uint256 public totalSupply;
 
-    function MyFirstERC20Coin() {
+    function MyToken() {
 
-        totalSupply = 1000000 * (10 ** uint256(decimals));
+        // Выпустим 1000000 на продажу и 100000 на дивиденды
+        totalSupply = 1100000 * (10 ** uint256(decimals));
 
         // "Отправляем" все токены на баланс того, кто инициализировал создание контракта токена
         // В нашем случае все токены будут у создателя
-        balanceOf[msg.sender] = totalSupply;
+        balances[msg.sender] = totalSupply;
     }
 }

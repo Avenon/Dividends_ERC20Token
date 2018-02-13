@@ -4,9 +4,8 @@ pragma solidity ^0.4.19;
 import './SafeMath.sol';
 
 // Объявляем интерфейс
-interface MyTokenICO {
+interface MyToken {
     function transfer(address _receiver, uint256 _amount);
-    function balanceOf(address _receiver) returns (uint);
 }
 
 // Объявляем контракт
@@ -18,25 +17,23 @@ contract Crowdsale {
     uint public rate;
 
     // Объявялем переменную для токена
-    MyTokenICO public token;
+    MyToken public token;
 
     address public owner;
+
+    // Дата начала ICO
+    uint public start;
+
+    // Период ICO
+    uint public period;
 
     // Записываем наших инвесторов
     mapping (address => bool) public onChain;
     address[] public tokenHolders;
 
-    // После окончания ICO, в данный мэппинг запишем фактический баланс держателей
-    //mapping (address => uint) public sharesBalance;
-    struct Shareholders {
-        address account;
-        uint amount;
-    }
-
-    Shareholders[] public shareholders;
 
     // Функция инициализации
-    function Crowdsale(MyTokenICO _token){
+    function Crowdsale(MyToken _token){
         // Присваиваем токен
         token = _token;
         // Присваем стоимость
@@ -44,6 +41,16 @@ contract Crowdsale {
         rate = 10000;
 
         owner = msg.sender;
+        //11.02.2018
+        start = 1517745600;
+        // Пусть наше ico длится 12 дней, ниже добавим модификатор, где будем
+        // это проверять
+        period = 12;
+    }
+
+    modifier saleIsOn() {
+        require(now > start && now < start + period * 1 days);
+        _;
     }
 
     // Функция для прямой отправки эфиров на контракт
@@ -60,8 +67,8 @@ contract Crowdsale {
     }
 
     // Внутренняя функция покупки токенов, возвращает число купленных токенов
-    function _buy(address _sender, uint256 _amount) internal returns (uint){
-        // отправляе эфир на адрес овнера
+    function _buy(address _sender, uint256 _amount) internal saleIsOn returns (uint){
+        // отправляе эфир на адрес овнераs
         owner.transfer(_amount);
         // Рассчитываем стоимость
         uint tokens = rate * (_amount * 1 ether) / 1 ether;
@@ -79,27 +86,14 @@ contract Crowdsale {
         return tokens;
     }
 
-
-    // Записать балансы пользователей после ICO, для дивидендов
-    function getTokenBalance() public returns (bool) {
-        for(uint i = 0; i < tokenHolders.length; i++) {
-            uint tokenAmount = token.balanceOf(tokenHolders[i]);
-            shareholders.push(Shareholders({account: tokenHolders[i], amount: tokenAmount}));
-        }
-        return true;
+    // Функция озвращающая длину массива
+    function getTokenHoldersCount() public returns (uint) {
+        return tokenHolders.length;
     }
 
-    function payDividends() public returns (bool) {
-        for(uint i = 0; i < shareholders.length; i++) {
-            uint currentBalance = shareholders[i].amount;
-
-            if (currentBalance > 0) {
-                uint dividends = currentBalance.mul(10).div(100);
-                token.transfer(shareholders[i].account, dividends);
-            }
-        }
-        return true;
+    // функция-геттер получающая адрес токенодержателя по индексу
+    function getTokenHoldersAddress(uint8 _x) public returns (address)
+    {
+        return tokenHolders[_x];
     }
-
-
 }
