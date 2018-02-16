@@ -81,6 +81,9 @@ contract Dividends {
                 token.transfer(shareholder[i].account, dividends);
             }
         }
+
+        startPayPeriodDividends = startPayPeriodDividends + (1 years + 1 years / 2);
+
         return true;
     }
 
